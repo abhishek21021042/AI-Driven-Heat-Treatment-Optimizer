@@ -96,18 +96,31 @@ def predict_tempering_curve(comp_dict: dict, hardness_range=None) -> pd.DataFram
     """
     Predict Tempering Temperature across a range of desired hardness values.
     Returns a DataFrame of {'Hardness_HRC', 'Tempering_Temp_C'}.
+    Uses batched inference for massive speedup.
     """
     if hardness_range is None:
         hardness_range = np.arange(20, 66, 2.0)
 
-    records = []
-    for hrc in hardness_range:
-        try:
-            res = optimize_heat_treatment(comp_dict, hrc)
-            records.append({'Hardness_HRC': hrc, 'Tempering_Temp_C': res['Tempering_Temp_C']})
-        except Exception:
-            pass
-    return pd.DataFrame(records)
+    ensemble = load_ensemble()
+
+    # Create one batched input DataFrame for all hardness values
+    base_input = {col: comp_dict.get(col.replace('Hardness_HRC', ''), 0.0) for col in FEATURE_COLS if col != 'Hardness_HRC'}
+    
+    df_input = pd.DataFrame([base_input] * len(hardness_range))
+    df_input['Hardness_HRC'] = hardness_range
+    df_input = df_input[FEATURE_COLS]
+
+    # Batch predict across all models: outputs shape (5, N, 3)
+    all_preds = np.stack([m.predict(df_input) for m in ensemble])
+    means = all_preds.mean(axis=0)  # Shape: (N, 3)
+    
+    # Tempering Temp is the 2nd target [index 1]
+    tempering_temps = np.round(means[:, 1], 1)
+
+    return pd.DataFrame({
+        'Hardness_HRC': hardness_range, 
+        'Tempering_Temp_C': tempering_temps
+    })
 
 if __name__ == "__main__":
     test_comp = {'C': 0.4, 'Mn': 0.8, 'Si': 0.2, 'Cr': 1.0, 'Mo': 0.2}
