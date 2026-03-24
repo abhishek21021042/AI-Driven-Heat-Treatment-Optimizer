@@ -1,5 +1,7 @@
 # 🔥 AI-Driven Heat Treatment Optimizer
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://ai-driven-heat-treatment-optimizergit-efjuwo6tuo7m2a8zmvjviw.streamlit.app/)
+
 A machine learning web dashboard that predicts the most **time- and energy-efficient heat treatment cycle** for low carbon steel alloys based on composition and desired hardness.
 
 Instead of manual trial-and-error or static handbook charts, simply enter your alloy composition and target hardness — the AI instantly outputs the optimal **Austenitizing Temperature**, **Tempering Temperature**, **Tempering Time**, and **Quench Medium**.
