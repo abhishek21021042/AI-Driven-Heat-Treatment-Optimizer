@@ -105,7 +105,7 @@ with col_input:
     target_hardness = st.slider("Target Hardness (HRC)", min_value=20.0, max_value=max_hrc, key='target_slider', step=0.5)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    predict_btn = st.button("🚀 Optimize Heat Treatment")
+    predict_btn = st.button("🚀 Optimize Heat Treatment", use_container_width=True)
 
 # ── Output Column ──────────────────────────────────────────────────────────────
 with col_output:
@@ -119,12 +119,17 @@ with col_output:
         with st.spinner("Ensemble AI optimizing..."):
             try:
                 result = optimize_heat_treatment(comp_dict, target_hardness)
+                # Cache the exact inputs used for this prediction to prevent visual desync
+                result['Target_Hardness'] = target_hardness
+                result['comp_dict'] = comp_dict
                 st.session_state['predictions'] = result
             except Exception as e:
                 st.error(f"Prediction error: {e}")
 
     if st.session_state.get('predictions'):
         r = st.session_state['predictions']
+        plotted_target = r.get('Target_Hardness', target_hardness)
+        plotted_comp   = r.get('comp_dict', {'C': c_pct, 'Mn': mn_pct, 'Si': si_pct, 'Ni': ni_pct, 'Cr': cr_pct, 'Mo': mo_pct, 'V': v_pct, 'P': p_pct, 'S': s_pct})
 
         # Main 4-card grid
         mc1, mc2 = st.columns(2)
@@ -173,11 +178,8 @@ with col_output:
 
         # C2: Tempering Curve
         st.markdown("<h4 style='margin-top:20px; color:#8b949e;'>📈 Predicted Tempering Curve</h4>", unsafe_allow_html=True)
-        comp_dict = {'C': c_pct, 'Mn': mn_pct, 'Si': si_pct,
-                     'Ni': ni_pct, 'Cr': cr_pct, 'Mo': mo_pct,
-                     'V': v_pct, 'P': p_pct, 'S': s_pct}
         with st.spinner("Generating tempering curve..."):
-            curve_df = predict_tempering_curve(comp_dict)
+            curve_df = predict_tempering_curve(plotted_comp)
 
         if not curve_df.empty:
             fig = go.Figure()
@@ -188,7 +190,7 @@ with col_output:
                 marker=dict(size=6, color='#58a6ff')
             ))
             fig.add_vline(x=r['Tempering_Temp_C'], line_dash="dash",
-                          line_color="#ff7b72", annotation_text=f"Target {target_hardness} HRC",
+                          line_color="#ff7b72", annotation_text=f"Target {plotted_target} HRC",
                           annotation_position="top right")
             fig.update_layout(
                 paper_bgcolor='#0d1117', plot_bgcolor='#161b22',
